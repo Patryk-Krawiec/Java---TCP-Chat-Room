@@ -9,15 +9,36 @@ import java.util.ArrayList;
 public class Server implements Runnable {
 
     private ArrayList<ConnectionHandler> connections;
+    private ServerSocket server;
+    private boolean done;
+
+    public Server() {
+        connections = new ArrayList<>();
+        done = false;
+    }
 
     @Override
     public void run() {
-        try (ServerSocket server = new ServerSocket(9999)) {
-            Socket client = server.accept();
-            ConnectionHandler handler = new ConnectionHandler(client);
-            connections.add(handler);
+        try {
+            server = new ServerSocket(9999);
+            while (!done) {
+                Socket client = server.accept();
+                ConnectionHandler handler = new ConnectionHandler(client);
+                connections.add(handler);
+            }
         } catch (IOException e) {
             //TODO: handle
+        }
+    }
+
+    public void shutdown() {
+        try {
+            done = true;
+            if (!server.isClosed()) {
+                server.close();
+            }
+        } catch (IOException e) {
+            // ignore
         }
     }
 
@@ -29,11 +50,12 @@ public class Server implements Runnable {
 
         public void broadcast(String message) {
             for (ConnectionHandler ch : connections) {
-                if (ch != null){
+                if (ch != null) {
                     ch.sendMessage(message);
                 }
             }
         }
+
         public ConnectionHandler(Socket client) {
             this.client = client;
         }
@@ -69,6 +91,7 @@ public class Server implements Runnable {
                 //TODO: handle
             }
         }
+
         public void sendMessage(String message) {
             out.println(message);
         }
